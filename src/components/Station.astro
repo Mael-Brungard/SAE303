@@ -1,0 +1,81 @@
+---
+// V4 · route B (chez le lecteur). Rendu initial au build = repli sans JS ; Plot n'est chargé qu'à l'approche de la section.
+import PlotFigure from "./PlotFigure.astro";
+import { v4, resume } from "../lib/charts.js";
+const { liste } = Astro.props;
+const d0 = liste.find((s: any) => s.nom === "Mouthe") ?? liste[0];
+const r = resume(d0);
+---
+
+<div data-v4>
+    <div hidden data-ctrl>
+        <label for="station" class="font-semibold"
+            >Ma station la plus proche :</label
+        >
+        <select
+            id="station"
+            class="ml-2 max-w-full rounded-lg border-2 border-encre bg-white px-3 py-2"
+        >
+            {
+                liste.map((s: any) => (
+                    <option value={s.poste} selected={s === d0}>
+                        {s.nom} — {s.alti} m
+                    </option>
+                ))
+            }
+        </select>
+    </div>
+    <PlotFigure
+        options={v4(d0.serie, `${r.titre}. ${r.sous}`)}
+        titre={r.titre}
+        sous={r.sous}
+        source="Source : Météo-France (MENSQ) · hivers complets (déc.–févr.) · moyenne glissante sur 11 hivers."
+    />
+    <script
+        is:inline
+        id="v4-data"
+        type="application/json"
+        set:html={JSON.stringify(liste)}
+    />
+</div>
+
+<script>
+    const root = document.querySelector("[data-v4]") as HTMLElement;
+    const list = JSON.parse(document.getElementById("v4-data")!.textContent!);
+    const sel = root.querySelector("select") as HTMLSelectElement;
+    const titre = root.querySelector("h3")!,
+        sous = root.querySelector("h3 + p")!;
+    titre.setAttribute("aria-live", "polite");
+    const charger = () =>
+        Promise.all([import("@observablehq/plot"), import("../lib/charts.js")]);
+    let pret: ReturnType<typeof charger> | undefined;
+    new IntersectionObserver(
+        ([e], o) => {
+            if (e.isIntersecting) {
+                pret ??= charger();
+                o.disconnect();
+            }
+        },
+        { rootMargin: "300px" },
+    ).observe(root);
+    (root.querySelector("[data-ctrl]") as HTMLElement).hidden = false;
+
+    const afficher = async (poste: string) => {
+        const s = list.find((x: any) => x.poste === poste);
+        if (!s) return;
+        const [Plot, { v4, resume }] = await (pret ??= charger());
+        const r = resume(s),
+            svg = Plot.plot(v4(s.serie, `${r.titre}. ${r.sous}`));
+        svg.setAttribute("role", "img");
+        root.querySelector("figure svg")!.replaceWith(svg);
+        titre.textContent = r.titre;
+        sous.textContent = r.sous;
+        history.replaceState(null, "", "#station=" + poste); // lien partageable
+    };
+    sel.addEventListener("change", () => afficher(sel.value));
+    const h = location.hash.match(/station=(\w+)/)?.[1];
+    if (h && list.some((x: any) => x.poste === h)) {
+        sel.value = h;
+        afficher(h);
+    }
+</script>

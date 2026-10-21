@@ -1,21 +1,150 @@
 ---
-import PlotFigure from "../components/PlotFigure.astro";
 import Layout from "../layouts/Layout.astro";
-import * as Plot from "@observablehq/plot";
-import penguins from "../assets/penguins.json";
+import PlotFigure from "../components/PlotFigure.astro";
+import Station from "../components/Station.astro";
+import { mean } from "d3-array";
+import { v1, v2, v3 } from "../lib/charts.js";
+import cm from "../assets/data/mois.json";
+import st from "../assets/data/stations.json";
+import serie from "../assets/data/serie.json";
+import doubs from "../assets/data/doubs.json";
+import liste from "../assets/data/hivers-stations.json";
+
+const fr = (x: number) => x.toLocaleString("fr-FR"),
+  r = Math.round;
+
+// Tous les chiffres du texte sont calculés depuis les données : rien n'est écrit en dur.
+const pc = (f: (c: number) => boolean) =>
+  r((100 * cm.filter(f).length) / cm.length);
+const sous20 = pc((c) => c < 20),
+  zero = pc((c) => c === 0),
+  plus100 = pc((c) => c > 100);
+const tri = [...st].sort((a, b) => a.moyenne - b.moyenne),
+  bas = tri[0],
+  haut = tri[tri.length - 1];
+const moy = (s: string, a: number, b: number) =>
+  mean(
+    serie.filter((d) => d.source === s && d.hiver >= a && d.hiver <= b),
+    (d) => d.jours,
+  )!;
+const avant = moy("Mesuré", 0, 1980),
+  depuis = moy("Mesuré", 2001, 3000),
+  mod = moy("Projeté", 2007, 2024),
+  fin = moy("Projeté", 2076, 2100);
+const baisse = r(100 * (1 - fin / mod));
+
+const wrap = "mx-auto max-w-3xl px-5",
+  bloc = "border-t border-trait py-16 md:py-24";
+const kicker = "mb-4 text-xs font-bold tracking-[.14em] uppercase text-brique";
+const h2 = "mb-4 font-serif text-3xl leading-tight text-balance md:text-4xl";
 ---
 
-<Layout>
-  <h1 class="text-2xl">Test Astro et Plot (Observablehq)</h1>
-  <PlotFigure
-    options={{
-      marks: [
-        Plot.dot(penguins, {
-          x: "culmen_length_mm",
-          y: "culmen_depth_mm",
-          stroke: "species",
-        }),
-      ],
-    }}
-  />
+<Layout
+  title="Neige dans le Doubs : l'altitude compte plus que l'année"
+  description="Combien de jours de neige le Doubs connaît-il chaque hiver ? Mesures 1950-2024 et projection RCP 4.5 jusqu'en 2100."
+>
+  <section
+    id="contexte"
+    aria-labelledby="t1"
+    class="neige bg-encre py-24 text-papier md:py-32"
+  >
+    <div class={wrap}>
+      <p class={kicker + " !text-[#f4a27a]"}>01 · Contexte</p>
+      <h1
+        id="t1"
+        class="mb-6 font-serif text-4xl leading-[1.1] text-balance md:text-6xl"
+      >
+        Il neige moins qu'avant ? Dans le Doubs, la réponse dépend d'où vous
+        habitez.
+      </h1>
+      <p class="mb-4 max-w-xl text-xl">
+        Combien de jours de neige le Doubs connaît-il chaque hiver, comment cela
+        a-t-il évolué depuis 1950, et que projette le scénario RCP 4.5 d'ici
+        2100 ?
+      </p>
+      <p class="max-w-xl">
+        Pour les habitants et visiteurs qui ont l'impression qu'il neige moins,
+        mais manquent de repères chiffrés sur l'altitude, le passé et l'avenir.
+      </p>
+      <a
+        href="#exploration"
+        class="mt-6 inline-block rounded-full border-2 border-current px-5 py-2 font-semibold"
+        >Explorer les données ↓</a
+      >
+    </div>
+  </section>
+
+  <section id="exploration" aria-labelledby="t2" class={bloc}>
+    <div class={wrap}>
+      <p class={kicker}>02 · Exploration</p>
+      <h2 id="t2" class={h2}>Où vous habitez compte plus que l'année</h2>
+      <p class="max-w-2xl">
+        Un hiver « moyen » n'existe pas : la neige tombe par à-coups, et pas du
+        tout au même endroit. Deux regards pour s'en convaincre.
+      </p>
+      <PlotFigure
+        titre={`${sous20} % des mois d'hiver reçoivent moins de 20 cm de neige`}
+        sous={`Plus de 100 cm reste rare (${plus100} %). La moyenne masque cette distribution en L.`}
+        source={`Source : Météo-France, MENSQ · décembre à février, 1981–2024 · ${fr(cm.length)} mois-stations.`}
+        options={v1(
+          cm,
+          `${zero} % des mois n'ont aucune neige fraîche`,
+          `Histogramme du nombre de mois d'hiver selon la neige fraîche, par tranches de 10 cm : ${sous20} % des mois sous 20 cm, ${zero} % sans aucune neige, ${plus100} % au-dessus de 100 cm.`,
+        )}
+      />
+      <PlotFigure
+        titre={`De ${r(bas.moyenne)} cm à ${r(haut.moyenne)} cm par mois : l'altitude commande la neige`}
+        sous={`${bas.nom} (${bas.alti} m) contre ${haut.nom} (${fr(haut.alti)} m). Survolez un point pour lire la station.`}
+        source={`Source : Météo-France (MENSQ) · ${st.length} stations avec au moins 60 mois d'hiver mesurés · contours : departements.geojson.`}
+        options={v2(
+          st,
+          doubs,
+          `Carte du Doubs avec ${st.length} stations colorées selon la neige fraîche moyenne par mois d'hiver, de ${r(bas.moyenne)} cm à ${bas.nom} (${bas.alti} m) à ${r(haut.moyenne)} cm aux ${haut.nom} (${fr(haut.alti)} m).`,
+        )}
+      />
+    </div>
+  </section>
+
+  <section id="revelation" aria-labelledby="t3" class={bloc}>
+    <div class={wrap}>
+      <p class={kicker}>03 · Révélation</p>
+      <h2 id="t3" class={h2}>
+        Le passé ne s'effondre pas, l'avenir glisse doucement
+      </h2>
+      <p class="max-w-2xl">
+        Les mesures ne montrent pas de chute : {r(avant)} jours de neige par hiver
+        en moyenne en 1951–1980, {r(depuis)} depuis 2001. Le modèle climatique, lui,
+        descend à environ {r(fin)} jours vers 2100, soit environ −{baisse} % par rapport
+        à sa propre moyenne de 2007–2024 ({r(mod)} jours).
+      </p>
+      <PlotFigure
+        titre="Jours de neige par hiver : mesures 1951–2021, projection RCP 4.5 jusqu'en 2100"
+        sous="Mesures et modèle se recouvrent entre 2007 et 2024 (bande grise) ; le modèle n'est pas une prévision."
+        source="Sources : Météo-France MENSQ (15 stations de référence, ≥ 5 par hiver) · DRIAS RCP 4.5 (simulation, 78 points ; un jour de neige = plus de 0,1 mm, seuil calé sur 2007–2024). Moyenne glissante sur 11 hivers."
+        options={v3(
+          serie,
+          `Courbes du nombre de jours de neige par hiver dans le Doubs, de 1951 à 2100. Mesures : ${r(avant)} jours en 1951–1980, ${r(depuis)} depuis 2001, sans tendance nette. Projection RCP 4.5 : ${r(mod)} jours en 2007–2024, ${r(fin)} en 2076–2100.`,
+        )}
+      />
+    </div>
+  </section>
+
+  <section id="conclusion" aria-labelledby="t4" class={bloc}>
+    <div class={wrap}>
+      <p class={kicker}>04 · Conclusion</p>
+      <h2 id="t4" class={h2}>Et chez vous ? Vérifiez avec votre station</h2>
+      <p class="mb-6 max-w-2xl">
+        Trois repères à retenir : l'écart entre vallée et plateau est d'un
+        facteur {r(haut.moyenne / bas.moyenne)} ; le passé mesuré ne montre pas de
+        tendance nette ; le futur repose sur un seul modèle et un seul scénario, sans
+        fourchette d'incertitude. Choisissez la station la plus proche de chez vous.
+      </p>
+      <Station liste={liste} />
+      <p class="mt-6">
+        <a class="text-brique underline underline-offset-4" href="/methode/"
+          >Sources, traitements et limites →</a
+        >
+      </p>
+    </div>
+  </section>
 </Layout>

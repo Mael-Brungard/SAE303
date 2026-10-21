@@ -6,17 +6,20 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "data": "node scripts/build-data.mjs"
   },
   "dependencies": {
     "@astrojs/netlify": "^8.2.3",
     "@observablehq/plot": "^0.6.17",
     "@tailwindcss/vite": "^4.3.3",
     "astro": "^7.2.4",
+    "d3-array": "^3.2.4",
     "jsdom": "^30.0.1",
     "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
-    "@types/jsdom": "^30.0.0"
+    "@types/jsdom": "^30.0.0",
+    "d3-dsv": "^3.0.1"
   }
 }

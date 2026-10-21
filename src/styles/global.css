@@ -1,1 +1,62 @@
 @import "tailwindcss";
+
+/* Palette de CHARTE ≠ palette de DONNÉES (bleus, cf. src/lib/charts.js) */
+@theme {
+    --color-encre: #1b1a17;
+    --color-papier: #f4efe6;
+    --color-carte: #fbf8f2;
+    --color-brique: #b83a0a;
+    --color-trait: #dcd3c3;
+    --color-brume: #5a554c;
+    --font-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+}
+
+html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 4rem;
+}
+
+:focus-visible {
+    outline: 3px solid var(--color-brique);
+    outline-offset: 3px;
+}
+
+header :focus-visible {
+    outline-color: #f4a27a;
+}
+
+/* Neige du hero : CSS pur, animée par transform (composité, sans JS) */
+.neige {
+    position: relative;
+    overflow: hidden;
+}
+
+.neige>* {
+    position: relative;
+}
+
+.neige::before {
+    content: "";
+    position: absolute;
+    inset: -200px 0 0;
+    background-size: 200px 200px;
+    will-change: transform;
+    background-image: radial-gradient(2px 2px at 20px 30px, #fff9, transparent), radial-gradient(3px 3px at 110px 120px, #fffc, transparent), radial-gradient(2px 2px at 160px 60px, #fff8, transparent);
+    animation: neige 12s linear infinite;
+}
+
+@keyframes neige {
+    to {
+        transform: translate3d(0, 200px, 0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    .neige::before {
+        animation: none;
+    }
+}

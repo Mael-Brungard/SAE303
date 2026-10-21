@@ -1,0 +1,188 @@
+---
+import Layout from "../layouts/Layout.astro";
+import hiversStations from "../assets/data/hivers-stations.json";
+import stations from "../assets/data/stations.json";
+
+const nRef = hiversStations.length,
+    nSt = stations.length;
+// ⚠ À compléter avant le rendu :
+const DATE_TELECHARGEMENT = "19/10/2026",
+    LICENCE_DRIAS =
+        "Licence Ouverte / Open Licence (Etalab), diffusion libre sans altération du sens";
+const NOTEBOOK = "https://observablehq.com/d/3e8fd4f99696ed4f"; // notebook privé : le passer en « Unlisted » pour que le lien fonctionne
+const fichiers = [
+    ["serie", "Jours de neige par hiver, mesurés et projetés (V3)"],
+    ["hivers-stations", "Série par station de référence (V4)"],
+    ["stations", "Neige fraîche moyenne par station (V2)"],
+    ["mois", "Neige fraîche par mois d'hiver, en cm (V1)"],
+    ["doubs", "Contour du Doubs (V2)"],
+];
+const routes = [
+    [
+        "V1 · Distribution",
+        "A · au build",
+        "La distribution est la même pour tous : rien ne doit bouger chez le lecteur. SVG inline, 0 octet de JavaScript.",
+    ],
+    [
+        "V2 · Carte",
+        "A · au build",
+        "Carte fixe ; l'info-bulle native du SVG (survol) suffit pour lire une station, sans script.",
+    ],
+    [
+        "V3 · Évolution",
+        "A · au build",
+        "Une série lue de gauche à droite, identique pour tous, avec étiquettes directes. Aucune interaction utile.",
+    ],
+    [
+        "V4 · Ma station",
+        "B · chez le lecteur",
+        "Le choix de la station est propre à chacun : ça doit bouger. Rendu initial au build (repli sans JS), bibliothèque graphique chargée seulement à l'approche de la section, état partageable via #station=…",
+    ],
+    [
+        "Route C écartée",
+        "—",
+        "Une page par station (15) n'apporterait que des URL indexables ; l'ancre #station= donne déjà un lien partageable pour 0 page de plus.",
+    ],
+];
+const h2 = "mt-10 mb-3 font-serif text-2xl",
+    ul = "max-w-2xl list-disc space-y-2 pl-6",
+    cell = "border border-trait p-2 text-left align-top";
+---
+
+<Layout
+    title="Méthode · Neige dans le Doubs"
+    description="Sources, dates, licences, traitements, limites et données téléchargeables."
+>
+    <section class="mx-auto max-w-3xl px-5 py-16 md:py-24" aria-labelledby="m1">
+        <p
+            class="mb-4 text-xs font-bold tracking-[.14em] uppercase text-brique"
+        >
+            Méthode
+        </p>
+        <h1
+            id="m1"
+            class="mb-6 font-serif text-4xl leading-[1.1] text-balance md:text-5xl"
+        >
+            Ce qui est publié peut être vérifié
+        </h1>
+
+        <h2 class={h2}>Sources</h2>
+        <ul class={ul}>
+            <li>
+                <strong>Météo-France, MENSQ</strong> (données climatologiques mensuelles,
+                stations du Doubs, 1950–2024) · Licence Ouverte 2.0 (Etalab), mention
+                « Source : Météo-France » · téléchargé le {DATE_TELECHARGEMENT}.
+            </li>
+            <li>
+                <strong>DRIAS, scénario RCP 4.5</strong> (simulation quotidienne,
+                78 points de grille, hivers 2006–2101) · licence : {
+                    LICENCE_DRIAS
+                } · mention : « Drias, données Météo-France, CERFACS, IPSL » · téléchargé
+                le {DATE_TELECHARGEMENT}.
+            </li>
+            <li>Contours : departements.geojson.</li>
+        </ul>
+
+        <h2 class={h2}>Traitements appliqués</h2>
+        <ul class={ul}>
+            <li>
+                Mois d'hiver uniquement (décembre à février) ; hiver N =
+                décembre N−1 + janvier-février N.
+            </li>
+            <li>
+                V1 et V2 : neige fraîche (HNEIGEFTOT) depuis 1981 seulement ; V2
+                garde les {nSt} stations avec au moins 60 mois mesurés.
+            </li>
+            <li>
+                V3 et V4 : nombre de jours de neige (NBJNEIG), hivers complets
+                (3 mois) ; {nRef} stations de référence (au moins 40 hivers complets)
+                ; un point de série n'existe que s'il y a au moins 5 stations.
+            </li>
+            <li>
+                DRIAS : neige en mm d'eau, convertie en « jours de neige » avec
+                le seuil neige_mm &gt; 0,1, calé sur la période de recouvrement
+                2007–2024 ; moyenne des 78 points de grille. Hivers 2006 et 2101
+                (incomplets) écartés.
+            </li>
+            <li>Lissage : moyenne glissante sur 11 hivers.</li>
+        </ul>
+
+        <h2 class={h2}>Limites et biais identifiés</h2>
+        <ul class={ul}>
+            <li>
+                Stations et grille ne partagent aucun lieu : les deux séries
+                sont mises bout à bout, avec une zone de recouvrement, jamais
+                fusionnées.
+            </li>
+            <li>
+                Le futur provient d'un seul modèle et d'un seul scénario : pas
+                de fourchette d'incertitude. C'est un ordre de grandeur, pas une
+                prévision.
+            </li>
+            <li>
+                Les stations ont ouvert et fermé au fil du temps ; les stations
+                de référence limitent ce biais sans le supprimer.
+            </li>
+            <li>
+                La neige fraîche mesurée n'est fiable qu'à partir de 1981 ;
+                avant, seul le nombre de jours de neige couvre toute la période.
+            </li>
+        </ul>
+
+        <h2 class={h2}>Choix d'export des visualisations</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full border-collapse text-sm">
+                <thead
+                    ><tr class="bg-carte"
+                        ><th scope="col" class={cell}>Visualisation</th><th
+                            scope="col"
+                            class={cell}>Route</th
+                        ><th scope="col" class={cell}>Justification</th></tr
+                    ></thead
+                >
+                <tbody
+                    >{
+                        routes.map(([a, b, c]) => (
+                            <tr>
+                                <>
+                                    <th scope="row" class={cell}>
+                                        {a}
+                                    </th>
+                                    <td class={cell}>{b}</td>
+                                    <td class={cell}>{c}</td>
+                                </>
+                            </tr>
+                        ))
+                    }</tbody
+                >
+            </table>
+        </div>
+
+        <h2 class={h2}>Données et notebook</h2>
+        <p class="mb-3 max-w-2xl">
+            Fichiers préfiltrés (colonnes utiles, deux décimales). Aucun fichier
+            brut n'est dans le dépôt.
+        </p>
+        <ul class={ul}>
+            {
+                fichiers.map(([f, d]) => (
+                    <li>
+                        <a
+                            class="text-brique underline"
+                            href={`/data/${f}.json`}
+                            download
+                        >
+                            {f}.json
+                        </a>{" "}
+                        · {d}
+                    </li>
+                ))
+            }
+        </ul>
+        <p class="mt-4">
+            <a class="text-brique underline" href={NOTEBOOK}
+                >Notebook Observable (SAE 303) →</a
+            >
+        </p>
+    </section>
+</Layout>
